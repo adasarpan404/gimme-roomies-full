@@ -1,19 +1,25 @@
 "use client"
+import { handleValidationError } from "@/components/error";
+import { loginSchema } from "@/helpers/schema";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 
-
+interface LoginInterface {
+    email: string,
+    password: string
+}
 export default function LoginPage() {
     const router = useRouter();
-    const [user, setUser] = React.useState({
+    const [user, setUser] = React.useState<LoginInterface>({
         email: "",
         password: ""
     })
 
-    const [buttonDisabled, setButtonDisabled] = React.useState(false);
-    const [loading, setLoading] = React.useState(false)
+    const [buttonDisabled, setButtonDisabled] = React.useState<boolean>(false);
+    const [loading, setLoading] = React.useState<boolean>(false)
     useEffect(() => {
         if (user.email.length > 0 && user.password.length > 0) {
             setButtonDisabled(false)
@@ -25,7 +31,16 @@ export default function LoginPage() {
     const onLogin = async () => {
         try {
             setLoading(true)
-            const response = await axios.post('/api/user/login', user)
+
+            const parsedResponse = loginSchema.safeParse(user)
+
+            if (!parsedResponse.success) {
+                handleValidationError<LoginInterface>(parsedResponse.error)
+                return;
+            }
+            const response = await axios.post('/api/auth/login', user)
+
+
             console.log(response)
             router.push("/profile")
         } catch (error: any) {
@@ -36,6 +51,7 @@ export default function LoginPage() {
     }
     return (
         <div className="flex flex-col items-center justify-center min-h-screen py-2">
+            <Toaster />
             <h1>{loading ? 'Processing' : 'Login'}</h1>
             <hr />
             <label htmlFor="email">Email</label>
@@ -57,7 +73,7 @@ export default function LoginPage() {
                 placeholder="password"
             />
             <button onClick={onLogin} disabled={buttonDisabled} className="p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-gray-600">{buttonDisabled ? 'No Login' : 'Login'}</button>
-            <Link href="/signup">Visit Signup Page Here</Link>
+            <Link href="/auth/signup">Visit Signup Page Here</Link>
         </div>
     );
 }
